@@ -1,0 +1,6 @@
+timeout: 1
+servers:
+  - name: andromeda
+    url: http://localhost:8081/healthCheck
+  - name: milkyway
+    url: http://localhost:8082/healthCheck
