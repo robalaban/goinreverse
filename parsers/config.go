@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	Timeout int
+	Healthcheck int
 	Servers []struct {
 		Name string
 		Url string

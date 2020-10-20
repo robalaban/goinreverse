@@ -2,7 +2,7 @@
 
 **[WIP]** Project is still in the development phase.
 
-`goinreverse` is a simple and configurable reverse-proxy built with go.
+`goinreverse` is a simple and configurable reverse-proxy and load balancer built with go.
 
 #### Configuration
 
