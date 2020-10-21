@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"goinreverse/heartbeat"
 	"goinreverse/parsers"
 	"log"
@@ -36,9 +37,10 @@ func (s *Server) IsOnline() (status bool) {
 	return
 }
 
+
 type ServerPool struct {
 	servers []*Server
-	current uint32
+	current int
 }
 
 //AddServer - Adds individual server to the pool of available servers
@@ -51,8 +53,29 @@ func (sp *ServerPool) AddServer(server *Server) {
 func (sp *ServerPool) HealthCheck() {
 	for _, server := range sp.servers {
 		status := heartbeat.PingServer(server.URL)
+		//TODO: Ping each server 3 times? To determine if healthy
 		server.SetOnline(status)
 	}
+}
+
+//Iterates over server pool and selects a server which is online
+func (sp *ServerPool) getHealthyServer() *Server {
+	for idx := range sp.servers {
+		if sp.servers[idx].IsOnline() {
+			sp.current = idx
+			return sp.servers[idx]
+		}
+	}
+	return nil
+}
+
+func loadBalanceHandler(w http.ResponseWriter, r *http.Request) {
+	proxyPeer := serverPool.getHealthyServer()
+	if proxyPeer != nil {
+		proxyPeer.Proxy.ServeHTTP(w, r)
+		return
+	}
+	http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
 }
 
 //healthCheck - Periodically set by {config.Healthecks} calls HealthCheck method
@@ -80,6 +103,7 @@ func main() {
 			log.Fatal("Unable to parse url, error:", err)
 		}
 
+		log.Println(serverUrl)
 		proxy := httputil.NewSingleHostReverseProxy(serverUrl)
 
 		serverPool.AddServer(&Server {
@@ -91,15 +115,14 @@ func main() {
 	}
 
 	server := http.Server {
-		Addr:    ServerPort,
+		Addr: fmt.Sprintf(":%s", ServerPort),
+		Handler: http.HandlerFunc(loadBalanceHandler),
 	}
 
 	go healthCheck()
 
-	log.Printf("Load Balancer started and listening on port: %d\n", 8080)
+	log.Printf("Load Balancer started and listening on port: %s\n", ServerPort)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal("Server stopped unexpectedly, error:", err)
 	}
-
-	log.Print(config.Servers)
 }
