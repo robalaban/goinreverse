@@ -26,15 +26,14 @@ type Server struct {
 
 func (s *Server) SetOnline(status bool) {
 	s.mux.Lock()
+	defer s.mux.Unlock()
 	s.isOnline = status
-	s.mux.Unlock()
 }
 
-func (s *Server) IsOnline() (status bool) {
+func (s *Server) IsOnline() bool {
 	s.mux.RLock()
-	status = s.isOnline
-	s.mux.RUnlock()
-	return
+	defer s.mux.RUnlock()
+	return s.isOnline
 }
 
 
@@ -58,14 +57,22 @@ func (sp *ServerPool) HealthCheck() {
 	}
 }
 
-//Iterates over server pool and selects a server which is online
+func (sp *ServerPool) getNextAvailableServerIndex() int {
+	return (sp.current + 1) % len(sp.servers)
+}
+
+//Looks at server pool determines if server is healthy and uses it as proxy
 func (sp *ServerPool) getHealthyServer() *Server {
-	for idx := range sp.servers {
-		if sp.servers[idx].IsOnline() {
-			sp.current = idx
-			return sp.servers[idx]
-		}
+	nextServer := sp.getNextAvailableServerIndex()
+	if sp.servers[nextServer].isOnline && sp.current != nextServer {
+		sp.current = nextServer
+		return sp.servers[nextServer]
 	}
+
+	if sp.servers[sp.current].isOnline {
+		return sp.servers[sp.current]
+	}
+
 	return nil
 }
 
