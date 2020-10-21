@@ -103,8 +103,14 @@ func main() {
 			log.Fatal("Unable to parse url, error:", err)
 		}
 
-		log.Println(serverUrl)
-		proxy := httputil.NewSingleHostReverseProxy(serverUrl)
+		director := func(req *http.Request) {
+			req.Header.Add("X-Forwarded-Host", req.Host)
+			req.Header.Add("X-Origin-Host", serverUrl.Host)
+			req.URL.Scheme = "http"
+			req.URL.Host = serverUrl.Host
+		}
+
+		proxy := &httputil.ReverseProxy{Director: director}
 
 		serverPool.AddServer(&Server {
 			URL:      serverUrl,
