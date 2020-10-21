@@ -22,6 +22,19 @@ type Server struct {
 	isOnline bool
 	mux      sync.RWMutex
 	Proxy    *httputil.ReverseProxy
+	RespTime int
+}
+
+func (s *Server) SetResponseTime(response int) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	s.RespTime = response
+}
+
+func (s *Server) GetResponseTime() int {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	return s.RespTime
 }
 
 func (s *Server) SetOnline(status bool) {
@@ -51,9 +64,10 @@ func (sp *ServerPool) AddServer(server *Server) {
 //HealthCheck - Loops servers in pool and pings all the servers
 func (sp *ServerPool) HealthCheck() {
 	for _, server := range sp.servers {
-		status := heartbeat.PingServer(server.URL)
+		status, load := heartbeat.PingServer(server.URL)
 		//TODO: Ping each server 3 times? To determine if healthy
 		server.SetOnline(status)
+		server.SetResponseTime(load)
 	}
 }
 
@@ -76,8 +90,29 @@ func (sp *ServerPool) getHealthyServer() *Server {
 	return nil
 }
 
+func (sp *ServerPool) getFastServer() *Server {
+	currentServer := sp.servers[sp.current]
+	for idx, server := range sp.servers {
+		if currentServer.RespTime <= server.RespTime {
+			continue
+		} else {
+			currentServer = sp.servers[idx]
+		}
+	}
+
+	if currentServer.isOnline {
+		return currentServer
+	}
+
+	return sp.getHealthyServer()
+}
+
 func loadBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	proxyPeer := serverPool.getHealthyServer()
+	if config.Mode == "weighted" {
+		proxyPeer = serverPool.getFastServer()
+	}
+
 	if proxyPeer != nil {
 		proxyPeer.Proxy.ServeHTTP(w, r)
 		return
