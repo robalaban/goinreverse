@@ -1,6 +1,9 @@
 ### 🚘 Reverse-proxy / LB using GO 
 
-**[WIP]** Project is still in the development phase.
+**Demo Project**
+This project is for learning purposes only.
+
+**[WIP]** Project is still in the work in progress phase.
 
 `goinreverse` is a simple and configurable reverse-proxy and load balancer built with go.
 
