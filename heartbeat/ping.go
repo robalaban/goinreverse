@@ -22,11 +22,7 @@ func PingServer(url *url.URL) (bool, int) {
 
 	client := http.DefaultClient;
 	resp, err := client.Do(req)
-	if err != nil {
-		log.Println("Server is offline, error:", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		return false, 0
 	}
 

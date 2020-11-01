@@ -78,12 +78,12 @@ func (sp *ServerPool) getNextAvailableServerIndex() int {
 //Looks at server pool determines if server is healthy and uses it as proxy
 func (sp *ServerPool) getHealthyServer() *Server {
 	nextServer := sp.getNextAvailableServerIndex()
-	if sp.servers[nextServer].isOnline && sp.current != nextServer {
+	if sp.servers[nextServer].IsOnline() && sp.current != nextServer {
 		sp.current = nextServer
 		return sp.servers[nextServer]
 	}
 
-	if sp.servers[sp.current].isOnline {
+	if sp.servers[sp.current].IsOnline() {
 		return sp.servers[sp.current]
 	}
 
