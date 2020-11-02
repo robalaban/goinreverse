@@ -1,4 +1,5 @@
 healthcheck: 5
+mode: weighted
 servers:
   - name: andromeda
     url: http://localhost:8081/

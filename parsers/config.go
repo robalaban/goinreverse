@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Healthcheck int
+	Mode string
 	Servers []struct {
 		Name string
 		Url string
